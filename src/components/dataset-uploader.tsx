@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ function parseCsv(csv: string): { data: any[], headers: string[] } {
 export function DatasetUploader({ onUpload, isLoading }: DatasetUploaderProps) {
   const [fileName, setFileName] = useState('');
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -75,6 +76,9 @@ export function DatasetUploader({ onUpload, isLoading }: DatasetUploaderProps) {
           description: error instanceof Error ? error.message : "Could not process the uploaded file.",
         });
         setFileName('');
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
       }
     };
 
@@ -94,7 +98,7 @@ export function DatasetUploader({ onUpload, isLoading }: DatasetUploaderProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <Input id="file-upload" type="file" accept=".csv, .json" onChange={handleFileChange} className="text-sm" />
+          <Input id="file-upload" type="file" accept=".csv, .json" onChange={handleFileChange} className="text-sm" disabled={isLoading} ref={fileInputRef}/>
           {fileName && (
             <div className="flex items-center justify-between text-sm text-muted-foreground p-2 bg-muted/50 rounded-md">
               <div className="flex items-center gap-2 truncate">

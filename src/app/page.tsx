@@ -57,6 +57,7 @@ export default function Home() {
     }
     setIsChartLoading(true);
     setChartResult(null);
+    setActiveQuery(query);
     try {
       const result = await generateChartFromQuery({ dataset: datasetString, query });
       const parsedData = JSON.parse(result.chartData);
@@ -76,7 +77,8 @@ export default function Home() {
   
   const handleSuggestionSelect = useCallback((suggestion: string) => {
     setActiveQuery(suggestion);
-  }, []);
+    handleQuerySubmit(suggestion);
+  }, [handleQuerySubmit]);
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -85,7 +87,7 @@ export default function Home() {
         <div className="flex flex-1 overflow-hidden">
           <Sidebar className="border-r border-border" collapsible="icon">
             <SidebarContent className="p-4 space-y-6">
-              <DatasetUploader onUpload={handleDatasetUpload} isLoading={isSuggestionsLoading} />
+              <DatasetUploader onUpload={handleDatasetUpload} isLoading={isSuggestionsLoading || isChartLoading} />
               <VisualizationSuggestions suggestions={suggestions} onSelect={handleSuggestionSelect} isLoading={isSuggestionsLoading} />
             </SidebarContent>
           </Sidebar>
