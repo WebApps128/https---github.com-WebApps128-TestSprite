@@ -32,11 +32,11 @@ export function QueryForm({ onSubmit, isLoading, initialQuery = '' }: QueryFormP
         <CardContent className="p-4">
           <div className="grid gap-4">
             <Textarea
-              placeholder="e.g., 'Show me sales by month as a bar chart' or 'What is the distribution of users by country?'"
+              placeholder="Ask the AI anything..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full text-base"
-              rows={2}
+              rows={3}
               disabled={isLoading}
             />
             <Button type="submit" disabled={isLoading || !query.trim()} className="w-full sm:w-auto justify-self-end bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -48,7 +48,7 @@ export function QueryForm({ onSubmit, isLoading, initialQuery = '' }: QueryFormP
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Chart
+                  Submit
                 </>
               )}
             </Button>

@@ -1,115 +1,64 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { SidebarProvider, Sidebar, SidebarInset, SidebarContent } from "@/components/ui/sidebar";
+import { useState, useCallback } from 'react';
 import { AppHeader } from '@/components/app-header';
-import { DatasetUploader } from '@/components/dataset-uploader';
-import { VisualizationSuggestions } from '@/components/visualization-suggestions';
 import { QueryForm } from '@/components/query-form';
-import { ChartDisplay, type ChartResult } from '@/components/chart-display';
-import { ChartConfigPanel } from '@/components/chart-config-panel';
 import { useToast } from '@/hooks/use-toast';
-import { suggestVisualizations } from '@/ai/flows/suggest-visualizations';
-import { generateChartFromQuery } from '@/ai/flows/generate-chart-from-query';
+import { generateText } from '@/ai/flows/generate-text';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
-  const [dataset, setDataset] = useState<any[] | null>(null);
-  const [datasetString, setDatasetString] = useState<string>('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [chartResult, setChartResult] = useState<ChartResult | null>(null);
-  const [chartConfig, setChartConfig] = useState({ title: '' });
-  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
-  const [isChartLoading, setIsChartLoading] = useState(false);
-  const [activeQuery, setActiveQuery] = useState('');
-  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [response, setResponse] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleDatasetUpload = useCallback(async (data: any[], dataString: string, description: string) => {
-    setDataset(data);
-    setDatasetString(dataString);
-    setChartResult(null);
-    setSuggestions([]);
-    setActiveQuery('');
-    setIsSuggestionsLoading(true);
+  const handleQuerySubmit = useCallback(async (query: string) => {
+    setIsLoading(true);
+    setResponse('');
     try {
-      const result = await suggestVisualizations({ datasetDescription: description });
-      setSuggestions(result.suggestions);
+      const result = await generateText({ prompt: query });
+      setResponse(result.response);
     } catch (error) {
-      console.error("Error getting suggestions:", error);
+      console.error("Error generating response:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Could not get visualization suggestions from AI.",
+        description: "The AI could not generate a response.",
       });
     } finally {
-      setIsSuggestionsLoading(false);
+      setIsLoading(false);
     }
   }, [toast]);
 
-  const handleQuerySubmit = useCallback(async (query: string) => {
-    if (!datasetString) {
-      toast({
-        variant: "destructive",
-        title: "No Dataset",
-        description: "Please upload a dataset before generating a chart.",
-      });
-      return;
-    }
-    setIsChartLoading(true);
-    setChartResult(null);
-    setActiveQuery(query);
-    try {
-      const result = await generateChartFromQuery({ dataset: datasetString, query });
-      const parsedData = JSON.parse(result.chartData);
-      setChartResult({ ...result, chartData: parsedData });
-      setChartConfig({ title: result.chartDescription });
-    } catch (error) {
-      console.error("Error generating chart:", error);
-      toast({
-        variant: "destructive",
-        title: "Chart Generation Failed",
-        description: "The AI could not generate a chart from your query.",
-      });
-    } finally {
-      setIsChartLoading(false);
-    }
-  }, [datasetString, toast]);
-  
-  const handleSuggestionSelect = useCallback((suggestion: string) => {
-    setActiveQuery(suggestion);
-    handleQuerySubmit(suggestion);
-  }, [handleQuerySubmit]);
-
   return (
-    <SidebarProvider defaultOpen={true}>
       <div className="flex flex-col h-screen bg-background text-foreground">
         <AppHeader />
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar className="border-r border-border" collapsible="icon">
-            <SidebarContent className="p-4 space-y-6">
-              <DatasetUploader onUpload={handleDatasetUpload} isLoading={isSuggestionsLoading || isChartLoading} />
-              <VisualizationSuggestions suggestions={suggestions} onSelect={handleSuggestionSelect} isLoading={isSuggestionsLoading} />
-            </SidebarContent>
-          </Sidebar>
-          <SidebarInset>
-            <main className="flex flex-col h-full">
-              <div className="p-4 sm:p-6 border-b border-border">
-                <QueryForm onSubmit={handleQuerySubmit} isLoading={isChartLoading} initialQuery={activeQuery} />
-              </div>
-              <div className="flex-1 p-4 sm:p-6 overflow-auto">
-                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-full">
-                  <div className="xl:col-span-3 h-full min-h-[400px]">
-                    <ChartDisplay ref={chartContainerRef} chartResult={chartResult} chartConfig={chartConfig} isLoading={isChartLoading} />
+        <main className="flex-1 flex flex-col p-4 sm:p-6 overflow-auto">
+          <div className="max-w-4xl w-full mx-auto flex flex-col gap-6">
+            <QueryForm onSubmit={handleQuerySubmit} isLoading={isLoading} />
+            
+            {isLoading && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
                   </div>
-                  <div className="xl:col-span-1">
-                    {chartResult && <ChartConfigPanel chartContainerRef={chartContainerRef} config={chartConfig} setConfig={setChartConfig} chartType={chartResult.chartType}/>}
-                  </div>
-                </div>
-              </div>
-            </main>
-          </SidebarInset>
-        </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {response && !isLoading && (
+              <Card>
+                <CardContent className="p-6">
+                  <p className="whitespace-pre-wrap">{response}</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </main>
       </div>
-    </SidebarProvider>
   );
 }
